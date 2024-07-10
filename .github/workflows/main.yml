@@ -1,43 +1,49 @@
-name: Build QAuxiliary
+name: Build Android App
 
 on:
   push:
     branches:
-      - main 
-  pull_request:
-    branches:
-      - main 
+      - main # 或者你想要触发构建的分支
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-        with:
-          submodules: recursive
-      
+
       - name: Set up JDK
         uses: actions/setup-java@v3
         with:
+          java-version: '11' # 或者你需要的 JDK 版本
           distribution: 'temurin'
-          java-version: '11'
-      
-      - name: Cache Gradle dependencies
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle.kts') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
-      - name: Build with Gradle
-        run: ./gradlew :app:assembleDebug 
-        # 或者 ./gradlew :app:synthesizeDistReleaseApksCI 
 
-      - name: Upload APK
+      - name: Grant execute permission to gradlew
+        run: chmod +x ./gradlew
+
+      - name: Build debug APK
+        run: ./gradlew :app:assembleDebug
+
+      # 如果需要编译 Release 包，取消注释以下步骤
+      # - name: Build release APK
+      #   run: ./gradlew :app:synthesizeDistReleaseApksCI
+      #   env:
+      #     # 配置你的签名密钥信息
+      #     STORE_FILE: ${{ secrets.STORE_FILE }}
+      #     KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+      #     KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+      #     STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+
+      - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: QAuxiliary-APK
-          path: app/build/outputs/apk/debug/  # 修改为你实际的 APK 输出路径
+          name: app-debug
+          path: app/build/outputs/apk/debug/
+
+      # 如果需要上传 Release 包，取消注释以下步骤
+      # - name: Upload release artifacts
+      #   uses: actions/upload-artifact@v3
+      #   with:
+      #     name: app-release
+      #     path: app/build/outputs/apk/release/
