@@ -1,9 +1,9 @@
-name: Build Android App
+name: Android Build
 
 on:
   push:
     branches:
-      - main # 或者你想要触发构建的分支
+      - main
 
 jobs:
   build:
@@ -16,34 +16,28 @@ jobs:
       - name: Set up JDK
         uses: actions/setup-java@v3
         with:
-          java-version: '11' # 或者你需要的 JDK 版本
+          java-version: '11'
           distribution: 'temurin'
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git cmake ninja-build ccache
+
+      - name: Download and install Android SDK & NDK
+        # 使用 actions/setup-android@v3 或自定义脚本下载和安装特定版本的 SDK 和 NDK
 
       - name: Grant execute permission to gradlew
         run: chmod +x ./gradlew
 
-      - name: Build debug APK
-        run: ./gradlew :app:assembleDebug
-
-      # 如果需要编译 Release 包，取消注释以下步骤
-      # - name: Build release APK
-      #   run: ./gradlew :app:synthesizeDistReleaseApksCI
-      #   env:
-      #     # 配置你的签名密钥信息
-      #     STORE_FILE: ${{ secrets.STORE_FILE }}
-      #     KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-      #     KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-      #     STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+      - name: Build with ccache
+        uses: gradle/gradle-build-action@v2
+        with:
+          gradle-version: '7.4.2'
+          arguments: :app:assembleDebug -PccacheExecutablePath=$(which ccache)
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
           name: app-debug
           path: app/build/outputs/apk/debug/
-
-      # 如果需要上传 Release 包，取消注释以下步骤
-      # - name: Upload release artifacts
-      #   uses: actions/upload-artifact@v3
-      #   with:
-      #     name: app-release
-      #     path: app/build/outputs/apk/release/
