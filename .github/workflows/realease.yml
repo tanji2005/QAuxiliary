@@ -27,11 +27,6 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y git cmake ccache
 
-    - name: Remove ANDROID_SDK_ROOT
-      run: |
-        echo "ANDROID_SDK_ROOT is deprecated and conflicting with ANDROID_HOME. Removing it."
-        unset ANDROID_SDK_ROOT
-        
     - name: Download and set up Android SDK and NDK
       run: |
         mkdir -p "$ANDROID_HOME"
@@ -39,14 +34,14 @@ jobs:
         wget -q https://dl.google.com/android/repository/commandlinetools-linux-8092744_latest.zip
         unzip -q commandlinetools-linux-8092744_latest.zip
         yes | ./cmdline-tools/bin/sdkmanager --sdk_root="$ANDROID_HOME" "platforms;android-34" "build-tools;34.0.0" "ndk;$NDK_VERSION" "cmake;$CMAKE_VERSION"
+        echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV 
 
-    - name: Set environment variables
+    - name: Export environment variables 
       run: |
-        echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
         echo "NDK_VERSION=${{ env.NDK_VERSION }}" >> $GITHUB_ENV
         echo "CMAKE_VERSION=${{ env.CMAKE_VERSION }}" >> $GITHUB_ENV
 
-    - name: Build project (Release)
+    - name: Build project
       run: |
         ./gradlew :app:synthesizeDistReleaseApksCI --info --warning-mode all
 
@@ -55,9 +50,8 @@ jobs:
       with:
         name: compiled-files
         path: |
-          app/build/outputs/ci/ 
+          app/build/outputs/ci/
 
     env:
-      ANDROID_HOME: ${{ github.workspace }}/android-sdk
       NDK_VERSION: 25.2.9519653
       CMAKE_VERSION: 3.22.1
