@@ -46,14 +46,4 @@ jobs:
         ./gradlew :app:assembleDebug --info
 
     - name: Upload build artifacts
-      uses: actions/upload-artifact@v2
-      with:
-        name: compiled-files
-        path: |
-          app/build/outputs/apk/debug/
-          app/build/outputs/bundle/debug/
-
-    env:
-      ANDROID_HOME: ${{ github.workspace }}/android-sdk
-      NDK_VERSION: 25.2.9519653
-      CMAKE_VERSION: 3.22.1
+      uses: actions/upload-artifact@
