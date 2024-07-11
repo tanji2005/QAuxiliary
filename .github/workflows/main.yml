@@ -1,61 +1,59 @@
-name: Android Build
+name: Build and Test
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ main ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ main ]
 
 jobs:
   build:
-    name: Build on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
-        with:
-          submodules: recursive
+    - name: Checkout repository
+      uses: actions/checkout@v2
+      with:
+        submodules: recursive
 
-      - name: Set up JDK 11
-        uses: actions/setup-java@v3
-        with:
-          java-version: 11
-          distribution: 'temurin'
+    - name: Set up JDK 11
+      uses: actions/setup-java@v2
+      with:
+        java-version: '11'
+        distribution: 'adopt'
 
-      - name: Cache Gradle packages
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y git cmake ccache
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-sdk@v3
-        with:
-          api-levels: 34
-          ndk-version: 25.2.9519653
-          ndk-path: ${{ runner.temp }}/ndk
+    - name: Download and set up Android SDK and NDK
+      run: |
+        mkdir -p "$ANDROID_HOME"
+        cd "$ANDROID_HOME"
+        wget -q https://dl.google.com/android/repository/commandlinetools-linux-8092744_latest.zip
+        unzip -q commandlinetools-linux-8092744_latest.zip
+        yes | ./cmdline-tools/bin/sdkmanager --sdk_root="$ANDROID_HOME" "platforms;android-34" "build-tools;34.0.0" "ndk;$NDK_VERSION" "cmake;$CMAKE_VERSION"
 
-      - name: Setup CMake
-        uses: gradle/gradle-build-action@v2
-        with:
-          arguments: tasks cmake --cmake-version=3.22.1
+    - name: Export environment variables
+      run: |
+        echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
+        echo "NDK_VERSION=${{ env.NDK_VERSION }}" >> $GITHUB_ENV
+        echo "CMAKE_VERSION=${{ env.CMAKE_VERSION }}" >> $GITHUB_ENV
 
-      - name: Build with Gradle
-        env:
-          ANDROID_NDK_HOME: ${{ runner.temp }}/ndk
-        run: ./gradlew :app:assembleDebug
+    - name: Build project
+      run: |
+        ./gradlew :app:assembleDebug
 
-      - name: Upload APK
-        uses: actions/upload-artifact@v3
-        if: ${{ matrix.os == 'ubuntu-latest' }}
-        with:
-          name: app-debug
-          path: app/build/outputs/apk/debug/
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: compiled-files
+        path: |
+          app/build/outputs/apk/debug/
+          app/build/outputs/bundle/debug/
+
+    env:
+      ANDROID_HOME: ${{ github.workspace }}/android-sdk
+      NDK_VERSION: 25.2.9519653
+      CMAKE_VERSION: 3.22.1
