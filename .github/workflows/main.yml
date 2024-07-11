@@ -43,15 +43,14 @@ jobs:
 
     - name: Build project
       run: |
-        ./gradlew :app:assembleDebug --info --warning-mode all
+        ./gradlew :app:synthesizeDistReleaseApksCI --info --warning-mode all
 
     - name: Upload build artifacts
       uses: actions/upload-artifact@v2
       with:
         name: compiled-files
         path: |
-          app/build/outputs/apk/debug/
-          app/build/outputs/bundle/debug/
+          app/build/outputs/ci/ 
 
     env:
       NDK_VERSION: 25.2.9519653
