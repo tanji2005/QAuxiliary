@@ -49,9 +49,8 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: compiled-files
-        # 请根据实际输出目录修改路径
         path: |
-          app/build/outputs/apk/distRelease/
+          app/build/outputs/ci/
 
     env:
       ANDROID_HOME: ${{ github.workspace }}/android-sdk
